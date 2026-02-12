@@ -1,18 +1,33 @@
 import "./App.css";
 import { useState, useEffect } from "react";
+import IncompleteTasks from "./components/IncompleteTasks";
+import OnProgressTasks from "./components/OnProgressTasks";
+import CompletedTasks from "./components/CompletedTasks";
+
 function App() {
   const [toDos, setToDos] = useState([]);
   const [toDo, setToDo] = useState("");
+
   useEffect(() => {
     const savedTodos = JSON.parse(localStorage.getItem("toDos"));
     if (savedTodos) {
-      setToDos(savedTodos);
+      // Migrate old boolean status to new string status if necessary
+      const migratedTodos = savedTodos.map(task => {
+        if (typeof task.status === 'boolean') {
+          return { ...task, status: task.status ? 'completed' : 'pending' };
+        }
+        return task;
+      });
+      setToDos(migratedTodos);
     }
   }, []);
 
   useEffect(() => {
     localStorage.setItem("toDos", JSON.stringify(toDos));
   }, [toDos]);
+
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const currentDay = days[new Date().getDay()];
 
   return (
     <div className="app">
@@ -21,7 +36,7 @@ function App() {
       </div>
       <div className="subHeading">
         <br />
-        <h2>Whoop, it's Wednesday 🌝 ☕ </h2>
+        <h2>Whoop, it's {currentDay} 🌝 ☕ </h2>
       </div>
       <div className="input">
         <input
@@ -35,7 +50,7 @@ function App() {
             if (toDo.trim() !== "") {
               setToDos([
                 ...toDos,
-                { id: Date.now(), text: toDo, status: false },
+                { id: Date.now(), text: toDo, status: 'pending' },
               ]);
               setToDo("");
             }
@@ -43,40 +58,20 @@ function App() {
           className="fas fa-plus"
         ></i>
       </div>
-      <div className="todos">
-        {toDos.map((obj) => {
-          return (
-            <div className="todo">
-              <div className="left">
-                <input
-                  onChange={(e) => {
-                    setToDos(
-                      toDos.filter((obj2) => {
-                        if (obj2.id === obj.id) {
-                          obj2.status = e.target.checked;
-                        }
-                        return obj2;
-                      }),
-                    );
-                  }}
-                  checked={obj.status}
-                  type="checkbox"
-                  name=""
-                  id=""
-                />
-                <p>{obj.text}</p>
-              </div>
-              <div className="right">
-                <i
-                  onClick={() => {
-                    setToDos(toDos.filter((obj2) => obj2.id !== obj.id));
-                  }}
-                  className="fas fa-times"
-                ></i>
-              </div>
-            </div>
-          );
-        })}
+
+      <div className="status-container">
+        <IncompleteTasks 
+          toDos={toDos.filter(obj => obj.status === 'pending')} 
+          setToDos={setToDos} 
+        />
+        <OnProgressTasks 
+          toDos={toDos.filter(obj => obj.status === 'onProgress')} 
+          setToDos={setToDos} 
+        />
+        <CompletedTasks 
+          toDos={toDos.filter(obj => obj.status === 'completed')} 
+          setToDos={setToDos} 
+        />
       </div>
     </div>
   );
